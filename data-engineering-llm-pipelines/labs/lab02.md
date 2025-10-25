@@ -221,9 +221,9 @@ print(p.describe(numeric_only=True).T.head())
   - **Datasette tips:** JSON is at `.../table.json` (use `_size`, `_next`, and column filters)
   - **Simulating errors:** Stop server to trigger connection errors; add a bogus param to force 4xx; explore retry logs.
   - **Common pitfalls:**
-  - Missing `timeout` in `requests` → hanging cells.
-  - Forgetting `params` vs string concatenation in URLs.
-  - Using f‑strings to inject SQL instead of `params=...`.
+    - Missing `timeout` in `requests` → hanging cells.
+    - Forgetting `params` vs string concatenation in URLs.
+    - Using f‑strings to inject SQL instead of `params=...`.
 
 ---
 
