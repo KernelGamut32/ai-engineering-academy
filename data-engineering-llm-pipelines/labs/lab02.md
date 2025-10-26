@@ -159,7 +159,8 @@ len(usa["rows"]) , usa["rows"][:2]
 
 ```python
 import sqlite3, pandas as pd
-conn = sqlite3.connect("northwind.db")
+# Update file path as needed
+conn = sqlite3.connect("lab02/northwind.db")
 
 country = "USA"  # from user input in real apps
 q = """
@@ -190,9 +191,12 @@ writer = None
 for i, chunk in enumerate(chunks, start=1):
     table = pa.Table.from_pandas(chunk, preserve_index=False)
     if writer is None:
-        writer = pq.ParquetWriter("order_details.parquet", table.schema)
+        # Update file path as needed
+        writer = pq.ParquetWriter("lab02/order_details.parquet", table.schema)
     writer.write_table(table)
-writer.close()
+
+if writer is not None:
+    writer.close()
 ```
 
 **Checkpoint:** Verify output file size and row count by re‑reading with pandas.
@@ -201,9 +205,10 @@ writer.close()
 
 ```python
 import pandas as pd
-p = pd.read_parquet("order_details.parquet")
+# Update file path as needed
+p = pd.read_parquet("lab02/order_details.parquet")
 print(len(p))
-print(p.describe(numeric_only=True).T.head())
+print(p.select_dtypes(include='number').describe().T.head())
 ```
 
 ---
@@ -238,6 +243,7 @@ print(p.describe(numeric_only=True).T.head())
 
   ```bash
   sqlite3 northwind.db ".tables"
+  sqlite3 northwind.db
   .schema Orders
   .quit
   ```

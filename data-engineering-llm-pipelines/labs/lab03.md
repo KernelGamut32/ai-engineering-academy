@@ -50,7 +50,7 @@ datasette northwind.db -h 127.0.0.1 -p 8001
 
 Leave this running. Open a new terminal for the **proxy**.
 
-### 4) Start an **Auth + Rate‑Limit Proxy** (FastAPI) on port 9000
+### 4) Start an **Auth + Rate‑Limit Proxy** (FastAPI) on port 8002
 
 Create `proxy.py` with the following contents:
 
@@ -118,7 +118,7 @@ Run the proxy:
 
 ```bash
 export API_TOKEN=super-secret-token
-uvicorn proxy:app --host 127.0.0.1 --port 9000 --reload
+uvicorn proxy:app --host 127.0.0.1 --port 8002 --reload
 ```
 
 > The proxy exposes the same endpoints as Datasette but now requires `Authorization: Bearer super-secret-token` and enforces a per‑minute request cap (default 60). It returns `429` with `Retry-After` when exceeded.
@@ -136,7 +136,7 @@ uvicorn proxy:app --host 127.0.0.1 --port 9000 --reload
 ```python
 import os, json, hashlib, time, datetime as dt
 from pathlib import Path
-BASE = "http://127.0.0.1:9000"   # go through proxy
+BASE = "http://127.0.0.1:8002"   # go through proxy
 DB   = "northwind"
 TABLE = "Orders"
 PAGE_SIZE = 200
@@ -210,35 +210,55 @@ def save_snapshot(payload_bytes: bytes, meta: dict) -> Path:
     return fpath
 
 def harvest_table(base, db, table, page_size=100, start_cursor=None, extra_params=None):
+    """Harvest a table with cursor pagination, saving snapshots."""
     url = f"{base}/{db}/{table}.json"
     params = {"_size": page_size}
     if extra_params:
         params.update(extra_params)
+    
     next_tok = start_cursor
     page = 0
     all_rows = []
+    columns = None  # Store column names from first response
+    
     while True:
         if next_tok:
             params["_next"] = next_tok
+        
         resp = resilient_get(url, params=params, headers=HEADERS)
         payload_bytes = resp.content
         payload = resp.json()
         rows = payload.get("rows", [])
+        
+        # Capture column names from first page
+        if columns is None:
+            columns = payload.get("columns", [])
+            print(f"Columns: {columns}")
+        
         page += 1
+        
         save_snapshot(payload_bytes, {
             "source": url,
-            "params": params,
+            "params": params.copy(),
             "table": table,
             "status": resp.status_code,
-            "page": page
+            "page": page,
+            "columns": columns  # Add to manifest
         })
+        
+        print(f"Page {page}: {len(rows)} rows")
+        
         if not rows:
             break
+        
         all_rows.extend(rows)
         next_tok = payload.get("next")
         if not next_tok:
             break
-    return pd.DataFrame(all_rows)
+    
+    # Create DataFrame with explicit column names
+    df = pd.DataFrame(all_rows, columns=columns)
+    return df    
 
 orders = harvest_table(BASE, DB, "Orders", page_size=PAGE_SIZE)
 orders.shape, orders.head()
@@ -307,7 +327,9 @@ len(files), files[:3]
 ### A6. (Optional) Harvest a second table and join
 
 ```python
-details = harvest_table(BASE, DB, "Order Details", page_size=PAGE_SIZE)
+DETAILS_PAGE_SIZE = 1_000
+# To make faster, modify max requests in proxy.py and restart
+details = harvest_table(BASE, DB, "Order+Details", page_size=DETAILS_PAGE_SIZE)
 # Normalize column names (Datasette may include spaces)
 details.columns = [c.replace(" ", "_") for c in details.columns]
 
@@ -326,7 +348,8 @@ Persist `merged` to `PARQUET_DIR/line_items.parquet`.
 
 ```python
 import sqlite3
-conn = sqlite3.connect("northwind.db")
+# Update file path as needed
+conn = sqlite3.connect("lab03/northwind.db")
 
 country = "USA"
 start_date = "1997-01-01"
@@ -481,7 +504,7 @@ async def passthrough(path: str, request: Request):
         return Response(content=r.content, status_code=r.status_code, headers=hdrs, media_type=hdrs.get("content-type"))
 ```
 
-▶ `uvicorn proxy_etag:app --host 127.0.0.1 --port 9000 --reload`
+▶ `uvicorn proxy_etag:app --host 127.0.0.1 --port 8002 --reload`
 
 ### 1.2 Update the client
 
@@ -738,7 +761,7 @@ if __name__ == "__main__":
 ### 7.2 `harvest.yml`
 
 ```yaml
-base: "http://127.0.0.1:9000"
+base: "http://127.0.0.1:8002"
 db: "northwind"
 table: "Orders"
 page_size: 200
@@ -843,7 +866,7 @@ def test_watermark_roundtrip(tmp_path: Path):
 ```json
 {
   "timestamp": "2025-10-25T18:02:11Z",
-  "source": "http://127.0.0.1:9000/northwind/Orders.json",
+  "source": "http://127.0.0.1:8002/northwind/Orders.json",
   "params": {"_size": 200, "_next": "eyJjdXJzb3I..."},
   "status": 200,
   "attempts": 1,
