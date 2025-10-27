@@ -25,6 +25,8 @@ By the end of this lab, you will be able to:
 **Notebook prologue cell (run first):**
 
 ```python
+# %pip install pandas fastparquet matplotlib numpy
+
 # Reproducibility & environment snapshot
 import os, sys, platform, random
 import numpy as np
@@ -209,7 +211,7 @@ print("If you see this, capture is working (the above print was captured)")
 
    ```python
    df.info()
-   df.describe(numeric_only=True).T
+   df.describe(include='all').T
    df['country'].value_counts(normalize=True).round(3)
    ```
 
@@ -239,7 +241,7 @@ out_csv = os.path.join(os.environ['DATA_DIR'], 'mini_eda_users.csv')
 out_parquet = os.path.join(os.environ['DATA_DIR'], 'mini_eda_users.parquet')
 
 %time df.to_csv(out_csv, index=False)
-%time df.to_parquet(out_parquet, index=False)
+%time df.to_parquet(out_parquet, index=False, engine='fastparquet')
 
 out_csv, out_parquet
 ```

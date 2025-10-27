@@ -194,7 +194,7 @@ def sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
 
 def save_snapshot(payload_bytes: bytes, meta: dict) -> Path:
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
     fname = f"{meta['table']}_{ts}_{meta['page']:05d}.json"
     fpath = RAW_DIR / fname
     fpath.write_bytes(payload_bytes)
@@ -308,7 +308,7 @@ from pathlib import Path
 import pyarrow as pa, pyarrow.parquet as pq
 
 # Simple normalization: select a subset + parse dates
-use = orders[["OrderID","CustomerID","OrderDate","ShipCountry","Freight"]].copy()
+use = orders_inc[["OrderID","CustomerID","OrderDate","ShipCountry","Freight"]].copy()
 use["OrderDate"] = pd.to_datetime(use["OrderDate"], errors="coerce").dt.date
 
 # Partition by ShipCountry for faster downstream filters
