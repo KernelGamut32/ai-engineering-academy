@@ -149,24 +149,37 @@ Add a new code cell and experiment with these magics (run each and observe outpu
 ```python
 # 1) Inline plotting for reports/notebooks
 %matplotlib inline
+```
 
+```python
+%%time
 # 2) Timing
 import time
-%%time
 _ = [time.sleep(0.001) for _ in range(200)]
+```
 
+```python
 # 3) Micro-benchmarks (repeat/average)
 import numpy as np
 arr = np.random.rand(1_000_00)
 %timeit arr.mean()
+```
 
+```python
 # 4) Environment variables for pipelines
 %env DATA_DIR=./data
+```
 
-# 5) Capture noisy cell output (useful when logging)
+```python
 %%capture cap
+# 5) Capture noisy cell output (useful when logging)
 print('This will be captured, not printed.')
 
+# Verify capture worked
+print("If you see this, capture is working (the above print was captured)")
+```
+
+```python
 # 6) Autoreload during iterative development
 %load_ext autoreload
 %autoreload 2
