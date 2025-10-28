@@ -33,7 +33,7 @@ rng = np.random.default_rng(42)
 users2 = pd.DataFrame({
     'CustomerID': [f'C{i:05d}' for i in range(300)],
     'country_norm': rng.choice(['USA','DE','SG','BR'], size=300, p=[.55,.2,.15,.1]),
-    'age': rng.integers(16, 80, size=300).astype('Int64'),
+    'age': rng.integers(16, 80, size=300).astype('int64'),
     'ltv_usd': np.round(np.clip(rng.lognormal(3.0, 0.7, size=300), 0, 5e4), 2),
     'is_adult': (rng.integers(16, 80, size=300) >= 18),
     'is_high_value': rng.random(300) > 0.85,
